@@ -1,4 +1,4 @@
-This project is a simple password manager built in Python using the `cryptography` library's `Fernet` encryption, focusing on cybersecurity best practices. 
+This project is a simple password manager built in Python using the cryptography library's Fernet encryption, focusing on cybersecurity best practices. 
 It starts by generating a secure encryption key, which is stored in a file for later use, emphasizing the importance of key security. 
 The manager allows users to encrypt and decrypt passwords, ensuring that sensitive information is protected from unauthorized access. 
 Users can add passwords associated with labels, which are securely stored in a JSON file. 
