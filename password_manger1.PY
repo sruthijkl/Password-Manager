@@ -2,7 +2,7 @@ import json
 import os
 from cryptography.fernet import Fernet
 
-# Generate a key for encryption
+# Generate a key for encryption (only run once)
 def generate_key():
     key = Fernet.generate_key()
     with open("key.key", "wb") as key_file:
@@ -10,66 +10,79 @@ def generate_key():
 
 # Load the encryption key
 def load_key():
-    return open("key.key", "rb").read()
+    try:
+        return open("key.key", "rb").read()
+    except FileNotFoundError:
+        print("Encryption key not found. Generating a new one.")
+        generate_key()
+        return open("key.key", "rb").read()
 
-# Encrypt password
+# Encrypt a password
 def encrypt_password(password, key):
     f = Fernet(key)
-    encrypted_password = f.encrypt(password.encode())
-    return encrypted_password
+    return f.encrypt(password.encode())
 
-# Decrypt password
+# Decrypt a password
 def decrypt_password(encrypted_password, key):
     f = Fernet(key)
-    decrypted_password = f.decrypt(encrypted_password).decode()
-    return decrypted_password
+    return f.decrypt(encrypted_password).decode()
 
-# Save password to a file
+# Save password to JSON file
 def save_password(account, password):
     key = load_key()
     encrypted_password = encrypt_password(password, key)
-    if os.path.exists("passwords.json"):
-        with open("passwords.json", "r+") as file:
-            data = json.load(file)
-            data[account] = encrypted_password.decode()
-            file.seek(0)
-            json.dump(data, file, indent=4)
-    else:
-        with open("passwords.json", "w") as file:
-            json.dump({account: encrypted_password.decode()}, file, indent=4)
 
-# Retrieve password from the file
+    data = {}
+    if os.path.exists("passwords.json"):
+        with open("passwords.json", "r") as file:
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError:
+                pass
+
+    data[account] = encrypted_password.decode()
+
+    with open("passwords.json", "w") as file:
+        json.dump(data, file, indent=4)
+
+# Retrieve a password from JSON file
 def get_password(account):
     key = load_key()
+    if not os.path.exists("passwords.json"):
+        return None
+
     with open("passwords.json", "r") as file:
         data = json.load(file)
-        encrypted_password = data.get(account)
-        if encrypted_password:
-            return decrypt_password(encrypted_password.encode(), key)
-        else:
-            return None
+
+    encrypted_password = data.get(account)
+    if encrypted_password:
+        return decrypt_password(encrypted_password.encode(), key)
+    else:
+        return None
 
 # Main function to run the program
 def main():
-    generate_key()  # Run this only once to create the key
+    if not os.path.exists("key.key"):
+        generate_key()
+
     while True:
-        choice = input("Do you want to (s)ave a password or (g)et a password? (q to quit): ")
+        choice = input("Do you want to (s)ave a password or (g)et a password? (q to quit): ").strip().lower()
         if choice == 's':
-            account = input("Enter the account name: ")
-            password = input("Enter the password: ")
+            account = input("Enter the account name: ").strip()
+            password = input("Enter the password: ").strip()
             save_password(account, password)
-            print("Password saved!")
+            print("Password saved successfully!")
         elif choice == 'g':
-            account = input("Enter the account name: ")
+            account = input("Enter the account name: ").strip()
             password = get_password(account)
             if password:
                 print(f"Password for {account}: {password}")
             else:
-                print("Account not found.")
+                print("Account not found or file missing.")
         elif choice == 'q':
             break
         else:
-            print("Invalid choice.")
+            print("Invalid choice. Please enter 's', 'g', or 'q'.")
 
 if __name__ == "__main__":
     main()
